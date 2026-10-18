@@ -1,8 +1,8 @@
 # Job Radar
 
-**A daily job-search agent for English speakers looking for work in Germany.** It reads your CV, searches six kinds of job sources plus hundreds of company career pages, throws out what you can't apply to (fluent German required, senior roles, student-only internships, the same job posted five times), and has parallel Claude agents rank the rest against your profile. You get a dashboard and a short email of the jobs worth your time.
+**A daily job-search agent that reads your CV, searches six kinds of job sources plus hundreds of company career pages, throws out what you can't apply to (language requirements you don't meet, senior roles, student-only internships, the same job posted five times), and has parallel Claude agents rank the rest against your profile.** You get a dashboard and a short email of the jobs worth your time.
 
-German level, countries, career stage and target roles are all set in your own profile, so it also works if your German is good or you search beyond Germany.
+Languages, countries, career stage and target roles are all set in your own profile.
 
 Built with [Claude Code](https://claude.com/claude-code). Python does the cheap, deterministic work for free; the LLM is used only where judgment is needed.
 
@@ -10,7 +10,6 @@ Built with [Claude Code](https://claude.com/claude-code). Python does the cheap,
 ~131,000 listings seen  ->  13,123 stored  ->  1,963 ranked by LLM  ->  123 high fit
         (title rules)       (full-text rules)     (Claude Haiku agents)
 ```
-*One week of my own search, Germany, October 2026.*
 
 ---
 
