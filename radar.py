@@ -7,7 +7,8 @@ Daily pipeline
   rank-apply       write the agents' verdicts back and rebuild the dashboard
   verify-prepare   batches of snippet-only high/medium roles for the job-verify agents
   verify-apply     store the verified postings and requeue them for ranking
-  dashboard        rebuild reports/dashboard.html
+  serve            open the dashboard with direct saving (local only)
+  dashboard        rebuild reports/dashboard.html (static file)
   digest           write (and send, if enabled) today's email
   sync             apply sync lines copied from the dashboard
 
@@ -24,7 +25,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from jobradar import ats_feeds, collect, config, cv_extract, dashboard, digest, feedback, prescreen, rank  # noqa: E402
+from jobradar import ats_feeds, collect, config, cv_extract, dashboard, digest, feedback, prescreen, rank, server  # noqa: E402
 from jobradar.rules import senior_skip, title_rejection  # noqa: E402
 
 
@@ -92,6 +93,10 @@ def main():
     va.set_defaults(func=rank.cmd_verify_apply)
 
     sub.add_parser("dashboard").set_defaults(func=lambda args: dashboard.build())
+    sv = sub.add_parser("serve", help="dashboard with direct saving, on 127.0.0.1 only")
+    sv.add_argument("--port", type=int, default=8765)
+    sv.add_argument("--no-browser", action="store_true")
+    sv.set_defaults(func=server.serve)
     d = sub.add_parser("digest")
     d.add_argument("--date")
     d.add_argument("--dry-run", action="store_true")

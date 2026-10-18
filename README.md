@@ -29,7 +29,10 @@ So I treated it like a commercial analytics problem: pull every source into one 
 - **Ranks with parallel LLM agents**: the survivors are cut down to their tasks and requirements sections and sent in batches to up to 18 Claude Haiku sub-agents at once. Each returns structured gates (work authorization, internship eligibility, experience, language) and a fit level.
 - **Verifies thin listings on the web**: a role known only from a short snippet is looked up on the employer's own site by a separate agent, then re-screened on the real text. (I added this after the data showed snippet-based fit calls were too optimistic: of 12 snippet roles whose full posting was found, 8 failed on years or language.)
 - **Learns from you**: mark jobs as applied or delete them with a reason on the dashboard; those choices go back into the ranking prompt as calibration examples.
-- **Reports**: a self-contained HTML dashboard with filters, and an optional daily email that is sent even on empty days, so a missing email means a failed run.
+- **Tracks your applications end to end**: a board from drafted to applied, interview, offer and hired (or rejected, no response, withdrawn). Drag a card to move it, open it to record the stage ("Round 2", "Case study"), the next interview date, contact, salary and CV version; every change lands on the application's timeline.
+- **Reminds you**: follow up after 14 days of silence, offers to close applications that went quiet after 30 days, and flags interviews and deadlines in the next 3 days (all configurable under `[tracking]`).
+- **Shows your funnel**: applied -> interview -> offer -> hired, overall and split by source, fit, country and direction, plus the median days to a first reply. Roles that led to interviews become the strongest calibration signal for the next day's ranking.
+- **Reports**: a dashboard that saves every click directly when you run `python radar.py serve` (or works as a plain HTML file with copy-and-sync), and an optional daily email that is sent even on empty days, so a missing email means a failed run.
 
 ## How it works
 
@@ -83,7 +86,7 @@ pip install -r requirements.txt
    python radar.py profile-check --title "Junior Marketing Analyst" --title "Senior Director Sales"
    ```
 4. **First run.** `python radar.py collect` (the first run takes longest), then `/daily-rank` in Claude Code.
-5. **Open** `reports/dashboard.html`.
+5. **Open the dashboard:** `python radar.py serve` opens it in your browser and saves every change directly (local only, on 127.0.0.1). Prefer a file? `reports/dashboard.html` works too; copy its sync lines to Claude Code afterwards.
 
 Your CV, profile and all collected data are git-ignored, so they stay on your machine even if you push your fork.
 
@@ -124,7 +127,8 @@ For Gmail, the app password needs 2-Step Verification. Other providers: set `dig
 python radar.py collect          # stage A
 python radar.py rank-prepare     # batches for the ranking agents (used by /daily-rank)
 python radar.py rank-apply DIR   # write verdicts back
-python radar.py dashboard        # rebuild the dashboard
+python radar.py serve            # dashboard with direct saving (Ctrl+C to stop)
+python radar.py dashboard        # rebuild the static dashboard file
 python radar.py digest --dry-run # preview today's email
 python radar.py sync FILE        # apply lines copied from the dashboard
 python radar.py sources          # every source and whether it runs

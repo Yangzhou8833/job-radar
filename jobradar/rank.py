@@ -104,6 +104,9 @@ def preferences_block():
     with open(path, encoding="utf-8") as f:
         prefs = json.load(f)
     parts = []
+    if prefs.get("interviews"):
+        parts.append("Roles that led to an interview - the strongest signal, rate similar roles highest:\n- "
+                     + "\n- ".join(prefs["interviews"]))
     if prefs.get("liked"):
         parts.append("Roles the candidate chose to apply to (rate similar roles higher):\n- " + "\n- ".join(prefs["liked"]))
     if prefs.get("not_interested"):

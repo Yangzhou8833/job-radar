@@ -223,10 +223,11 @@ class DashboardAndSync(unittest.TestCase):
         self.assertTrue(any("too much travel" in x for x in prefs["not_interested"]))
         with open(config.data(config.TRACKER), encoding="utf-8") as f:
             self.assertIn("CRM Manager", f.read())
+        self.assertTrue(any("application added" in line for line in report))
         path = dashboard.build(os.path.join(config.data_dir(), "dash.html"))
         html = open(path, encoding="utf-8").read()
-        self.assertIn("CRM Manager", html)
-        self.assertNotIn("Buyer", html.split("const DATA = ")[1].split(";\n")[0])  # deleted jobs leave the page
+        jobs = json.loads(html.split("let DATA = ")[1].split(";\nconst LIVE")[0])["jobs"]
+        self.assertEqual([j["title"] for j in jobs], ["CRM Manager"])  # deleted jobs leave the page
 
     def test_preferences_reach_the_prompt(self):
         feedback.build_prefs({"x": {"title": "Pricing Analyst", "company": "P", "apply_status": "ready_to_apply_manually"}})

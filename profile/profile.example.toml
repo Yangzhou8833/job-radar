@@ -158,6 +158,12 @@ smtp_host = "smtp.gmail.com"
 smtp_port = 465
 max_local_language = 3       # at most this many German-written postings per email
 
+[tracking]
+# Application reminders on the dashboard.
+follow_up_days = 14      # applied and no reply for this long: suggest a follow-up
+no_response_days = 30    # ... this long: suggest closing it as no response
+upcoming_days = 3        # interviews and deadlines this close are flagged
+
 [budgets]
 # Requests per day spent on discovering new company career boards and on swapping englishjobs
 # snippets for the employer's full posting. Higher finds more, slower.
