@@ -1,0 +1,16 @@
+# Personal: your CV, its extracted text and your profile never leave your machine
+profile/*
+!profile/profile.example.toml
+!profile/README.md
+
+# Runtime data and generated reports
+data/
+reports/
+
+# Python / tooling
+__pycache__/
+*.pyc
+.venv/
+venv/
+vendor/linkedin-search/node_modules/
+.claude/settings.local.json

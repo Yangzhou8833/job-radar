@@ -1,0 +1,155 @@
+# Job Radar profile.
+#
+# The easy way: put your CV in this folder and run /setup in Claude Code. It reads the CV,
+# asks you a few questions and writes profile/profile.toml for you.
+# The manual way: copy this file to profile/profile.toml and edit it.
+#
+# profile.toml and your CV are git-ignored, so they never end up in a commit.
+# Check what your profile resolves to with:   python radar.py profile-check
+#
+# Everything below describes a made-up example person, Alex Example.
+
+[candidate]
+name = "Alex Example"
+# student | graduate | experienced. Decides the default rules for internships, working-student
+# jobs and senior titles (see [rules]).
+career_stage = "graduate"
+years_experience = 2
+# The ranking agents read this for every job. Facts only, taken from your CV. Keep it short:
+# it is repeated once per batch of 25 jobs.
+summary = """
+Alex Example, Berlin. Holds a German work permit only (no other EU work authorization).
+MSc Marketing, Example University (2026). BSc Business Administration.
+Experience (~2 years of internships and working-student roles, no people management):
+- Consumer goods company, Marketing Intern (12 months): campaign planning across 8 markets, Excel KPI tracking, Power BI reporting.
+- E-commerce startup, Growth Working Student (9 months): paid social campaigns, A/B tests, GA4 analysis.
+Skills: Excel, Power BI, SQL, GA4, Google Ads, HubSpot, Python (basic).
+Priority industries: consumer goods, retail, e-commerce, SaaS.
+"""
+
+[scope]
+# Countries to search, as codes from jobradar/countries.py (DE, NL, AT, PL, CH, BE, LU, FR, UK, IE,
+# ES, PT, IT, DK, SE, NO, FI, CZ). The sources are strongest for Germany.
+countries = ["DE", "NL", "AT"]
+# Internships are kept only in these countries ([] = no internships at all).
+internship_countries = ["DE"]
+# Where you may work without employer sponsorship. Elsewhere in scope, a posting that requires a
+# local work permit or says it does not sponsor visas is skipped.
+work_permit_countries = ["DE"]
+# How to read a blank, "Remote" or unrecognised location. "" treats it as out of scope.
+unknown_location = "DE"
+
+[languages]
+# CEFR level per language: A1, A2, B1, B2, C1, C2 or "native".
+# German below C1 switches on the German-requirement rules (see rules.german_jd_policy).
+# A posting written in Dutch or Polish is skipped unless you list that language at B2 or above.
+english = "C1"
+german = "B1"
+spanish = "native"
+
+[rules]
+# Skip a posting that explicitly asks for this many years of experience or more.
+skip_if_years_at_least = 3
+# Skip titles such as Senior / Lead / Head of / Director (default: on unless career_stage is experienced).
+skip_senior_titles = true
+# What to do with a posting written in German when your German is below C1:
+#   "skip"      skip every German-written posting
+#   "soft-only" keep it only if it explicitly asks for no more than good / B1-B2 German (it is then kept at high fit only)
+#   "keep"      keep it and let the ranking decide
+german_jd_policy = "soft-only"
+# Companies you know take only enrolled students as interns (their internships are skipped).
+enrolled_only_internship_companies = []
+# excluded_title_words = [...]   # replaces the default list of other tracks (Ausbildung, thesis, Werkstudent...)
+# extra_noise_title_words = [...] # added to the default list of non-office titles (warehouse, driver...)
+
+# Direction groups. A job title must match at least one keyword of one group, or it is dropped before
+# anything else is fetched. Keep the groups broad: later steps remove senior and noise titles, and the
+# ranking makes the real fit call.
+# Keywords match whole words or phrases, case-insensitively ("crm" matches "CRM Manager", not "Scrum").
+# A trailing * makes a prefix ("analy*" matches analyst and analytics). "re:" starts a regular expression.
+[directions]
+digital_marketing = ["marketing", "brand", "content", "communication*", "kommunikation", "social media", "pr",
+                     "public relations", "seo", "sea", "sem", "ppc", "paid media", "paid social", "paid search",
+                     "google ads", "meta ads", "media buy*", "influencer", "performance marketing"]
+crm_lifecycle = ["crm", "lifecycle", "retention", "email marketing", "e-mail marketing", "campaign*", "kampagne*",
+                 "marketing automation"]
+growth_gtm = ["growth", "gtm", "go-to-market", "demand gen*", "revenue operations", "revops", "lead generation"]
+ecommerce_category = ["e-commerce", "ecommerce", "online-shop", "marketplace", "amazon", "merchandis*", "category",
+                      "buying", "buyer", "einkäufer", "sortiment", "assortment"]
+analysis_bi = ["analyst", "analytics", "business analy*", "bi", "business intelligence", "insight*", "market research",
+               "marktforschung", "reporting", "controll*"]
+bizdev_salesops = ["business development", "sales operations", "sales ops", "commercial operations", "sales analyst",
+                   "sales coordinator", "sales support", "sales development", "sdr", "bdr", "commercial", "vertrieb*"]
+customer_account = ["customer success", "account manag*", "key account", "account executive", "partner manag*",
+                    "partnership*"]
+product = ["product manager", "product management", "product marketing", "product operations", "product owner",
+           "product analyst", "junior product", "produktmanag*"]
+strategy_operations = ["strateg*", "business operations", "operations analyst", "operations associate",
+                       "project coordinat*", "project manag*", "projekt*", "chief of staff", "founder's associate",
+                       "founders associate", "market entry", "expansion"]
+procurement_supply = ["procurement", "purchas*", "einkauf*", "supply chain", "planning", "planner", "forecast*",
+                      "logistic*", "disponent"]
+pricing_trade = ["pricing", "trade marketing", "channel marketing", "shopper"]
+spanish_markets = ["spanish", "spain", "iberia", "latam", "latin america"]
+graduate_programmes = ["graduate", "trainee", "absolvent*", "berufseinsteiger", "entry level", "entry-level"]
+
+[advantage]
+# Signals that you have a real edge, e.g. a language you speak natively. The ranking is told about
+# them, and medium-fit jobs that show one also go into the daily email.
+label = "Spanish advantage"
+keywords = ["spanish", "spanisch", "español", "latam", "latin america"]
+companies = []
+
+[search]
+# Sources, in the order they run: bundesagentur (Germany's federal job board, full text), arbeitnow,
+# ats (company career feeds), workable, linkedin (needs bun, see README), englishjobs.
+sources = ["bundesagentur", "arbeitnow", "ats", "workable", "englishjobs"]
+# Keep postings published in the last N days.
+days = 2
+# Keyword searches for Bundesagentur and englishjobs. One or two broad terms per direction is enough:
+# the direction keywords above do the narrowing.
+keywords = ["marketing", "brand", "performance marketing", "content", "CRM", "growth", "e-commerce",
+            "marketplace", "category manager", "business analyst", "business intelligence", "commercial",
+            "business development", "sales operations", "customer success", "account manager",
+            "product marketing", "product manager", "strategy", "business operations", "procurement",
+            "supply chain", "pricing", "spanish", "graduate", "trainee", "junior", "entry level",
+            "graduate internship", "Berufseinsteiger"]
+englishjobs_domains = ["englishjobs.de"]
+workable_keywords = ["marketing", "brand", "growth", "e-commerce", "business analyst", "business development",
+                     "sales operations", "customer success", "account manager", "product", "operations",
+                     "procurement", "strategy", "junior", "graduate", "entry level"]
+workable_cities = ["Berlin", "Munich", "Hamburg", "Frankfurt", "Cologne", "Amsterdam", "Rotterdam", "Vienna"]
+
+[search.linkedin]
+# LinkedIn is off by default: it needs bun (https://bun.sh), and automated access is against
+# LinkedIn's terms of service. Personal, low-volume use only, at your own responsibility.
+enabled = false
+location = "Germany"
+# Searched as well, one page each, for terms whose country-wide search hit the page cap.
+city_topup = ["Berlin, Germany", "Munich, Germany", "Hamburg, Germany"]
+# Run every day, looking back one day.
+daily_terms = ["graduate program", "junior", "entry level", "growth analyst", "sales operations",
+               "e-commerce manager", "commercial analyst"]
+# Split in two halves that run on alternating days, looking back two days.
+rotating_terms = ["CRM manager", "lifecycle marketing", "brand manager", "content marketing", "performance marketing",
+                  "paid social", "customer success associate", "junior account manager", "junior buyer",
+                  "supply chain analyst", "pricing analyst", "product marketing manager", "business operations",
+                  "go-to-market"]
+max_pages = 5
+delay_seconds = 1.5
+
+[digest]
+# Daily email with the new high-fit jobs (and medium-fit jobs with an advantage signal).
+# Credentials never go in this file: set JOB_RADAR_SMTP_USER and JOB_RADAR_SMTP_PASSWORD as
+# environment variables (for Gmail, an app password). See README.
+enabled = false
+to = ""                      # defaults to JOB_RADAR_SMTP_USER
+smtp_host = "smtp.gmail.com"
+smtp_port = 465
+max_local_language = 3       # at most this many German-written postings per email
+
+[budgets]
+# Requests per day spent on discovering new company career boards and on swapping englishjobs
+# snippets for the employer's full posting. Higher finds more, slower.
+ats_probe = 600
+snippet_resolve = 400

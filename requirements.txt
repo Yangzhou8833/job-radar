@@ -1,0 +1,3 @@
+# Job Radar runs on the Python standard library (3.11+).
+# Optional: read PDF CVs in /setup (otherwise the `pdftotext` command or a .docx/.txt CV works).
+pypdf>=4.0
