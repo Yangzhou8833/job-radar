@@ -1,6 +1,6 @@
 # Job Radar
 
-**A daily job-search agent that reads your CV, searches six kinds of job sources plus hundreds of company career pages, throws out what you can't apply to (language requirements you don't meet, senior roles, student-only internships, the same job posted five times), and has parallel Claude agents rank the rest against your profile.** You get a dashboard and a short email of the jobs worth your time.
+**A daily job-search agent that reads your CV, searches job boards and hundreds of company career pages (and any source you plug in), throws out what you can't apply to (language requirements you don't meet, senior roles, student-only internships, the same job posted five times), and has parallel Claude agents rank the rest against your profile.** You get a dashboard and a short email of the jobs worth your time.
 
 Languages, countries, career stage and target roles are all set in your own profile.
 
@@ -21,7 +21,8 @@ So I treated it like a commercial analytics problem: pull every source into one 
 
 ## What it does
 
-- **Collects** postings daily from the German federal job board (Bundesagentur für Arbeit), Arbeitnow, Workable, englishjobs, optionally LinkedIn, and the public job feeds of company applicant tracking systems (Greenhouse, Lever, Ashby, Personio, Recruitee, SmartRecruiters).
+- **Collects** postings daily from built-in sources: the public job feeds of company applicant tracking systems (Greenhouse, Lever, Ashby, Personio, Recruitee, SmartRecruiters, used worldwide), Workable, Arbeitnow, the German federal job board (Bundesagentur für Arbeit), englishjobs, and optionally LinkedIn.
+- **Takes any other source as a plug-in**: one small Python file in `sources_custom/` adds a job board for your country, or run `/add-source <board>` and Claude Code checks the site's rules, writes the source and its test for you. You can also list the companies you want to follow (`company_boards`) and their career pages are read every day.
 - **Discovers company career boards by itself**: any ATS link it sees becomes a feed it reads every day, and it guesses boards for companies seen elsewhere, accepting a guess only when the feed contains a role it already saw from that company. My registry grew to 132 boards in a week without any manual input.
 - **Deduplicates** across sources and days (same URL, or same normalized company + title).
 - **Pre-screens with rules, not tokens**: seniority, "3+ years required", fluent-German requirements, German-written postings, internships that require enrollment, work-permit and visa wording, location. Everything is driven by your profile.
@@ -36,7 +37,7 @@ So I treated it like a commercial analytics problem: pull every source into one 
 flowchart LR
     CV[Your CV] -->|/setup| P[profile.toml]
     subgraph A[Stage A - Python, no LLM]
-        S[6 source types<br/>+ company ATS feeds] --> G[Title gate<br/>dedupe, directions,<br/>seniority, location]
+        S[Built-in sources<br/>+ company ATS feeds<br/>+ your plug-ins] --> G[Title gate<br/>dedupe, directions,<br/>seniority, location]
         G --> PS[Pre-screen on full text<br/>years, language,<br/>enrollment, work permit]
     end
     subgraph B[Stage B - Claude Code]
@@ -115,7 +116,7 @@ For Gmail, the app password needs 2-Step Verification. Other providers: set `dig
 | `[rules]` | years threshold, senior titles, how to treat German-written postings, enrolled-only companies |
 | `[directions]` | title keywords per direction group: the first, coarse filter |
 | `[advantage]` | signals of a real edge (e.g. a native language employers ask for) |
-| `[search]` | sources, keywords, Workable cities, LinkedIn terms |
+| `[search]` | sources (built-in and your own), company boards to follow, keywords, Workable cities, LinkedIn terms |
 
 ## Commands
 
@@ -126,6 +127,7 @@ python radar.py rank-apply DIR   # write verdicts back
 python radar.py dashboard        # rebuild the dashboard
 python radar.py digest --dry-run # preview today's email
 python radar.py sync FILE        # apply lines copied from the dashboard
+python radar.py sources          # every source and whether it runs
 python radar.py ats list         # company career boards found so far
 python -m unittest discover -s tests
 ```
@@ -134,7 +136,20 @@ python -m unittest discover -s tests
 
 All sources are public endpoints, called with fixed delays, backoff on rate limits and a hard stop after repeated limits. englishjobs' redirect links are disallowed by its robots.txt, so they are stored for you to click but never fetched. **LinkedIn is off by default:** the bundled CLI uses LinkedIn's public job pages, which its terms of service do not allow automated access to; enable it only for low-volume personal use, at your own responsibility.
 
-The sources are strongest for Germany. Other countries in `jobradar/countries.py` are supported through Workable, company feeds and LinkedIn; adding a local job board means adding a collector in `jobradar/sources.py`.
+## Adding sources (any country)
+
+The built-in job boards lean towards Germany and Europe, because that is where this started. Three ways to cover your market:
+
+1. **Follow companies directly.** Company career feeds work in every country. List the ones you care about in your profile and they are read every day:
+   ```toml
+   [search]
+   company_boards = ["greenhouse:stripe", "lever:spotify", "ashby:notion"]
+   ```
+   The board name is the part of the careers URL after the domain (`boards.greenhouse.io/stripe` -> `greenhouse:stripe`). Job Radar also finds new boards by itself from every link it sees.
+2. **Plug in a job board.** Add a file to `sources_custom/`: a `NAME`, a `FULL_TEXT` flag and a `collect(ctx)` function. `sources_custom/_template.py` is the starting point, and `sources_custom/remotive.py` is a complete example (Remotive's worldwide remote-jobs API). Then add its name to `[search] sources`.
+3. **Let Claude Code write it.** Run `/add-source jobindex.dk` (or any board or API). It checks robots.txt and the terms first, picks the cleanest public route (API, feed, then pages), writes the source and an offline test, does one live dry run, and turns it on in your profile.
+
+`python radar.py sources` shows every available source and which ones run. Countries Job Radar recognises are listed in `jobradar/countries.py`; adding one is a few lines (names and major cities).
 
 ## Credits
 

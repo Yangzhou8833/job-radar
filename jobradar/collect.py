@@ -32,13 +32,38 @@ import sys
 import time
 import traceback
 
-from . import ats_feeds, config, countries, prescreen, sources
+from . import ats_feeds, config, countries, plugins, prescreen, sources
 from .rules import INTERNSHIP_TITLE, norm_key, senior_skip, title_rejection
 
 LOCK_STALE_HOURS = 3
 # Sources that deliver full text run first, so when the same job appears on several boards
-# the stored copy is the one the pre-screen can actually read.
-SOURCE_ORDER = ["bundesagentur", "arbeitnow", "ats", "workable", "linkedin", "englishjobs"]
+# the stored copy is the one the pre-screen can actually read. Your own sources from
+# sources_custom/ slot in by their FULL_TEXT flag.
+BUILTIN_FULL_TEXT = ["bundesagentur", "arbeitnow", "ats", "workable"]
+BUILTIN_LATER = ["linkedin", "englishjobs"]  # LinkedIn text is fetched later; englishjobs gives snippets
+SOURCE_ORDER = BUILTIN_FULL_TEXT + BUILTIN_LATER
+
+
+def available_sources(custom=None):
+    """Every source that can run, in run order, and the custom source modules by name."""
+    custom = plugins.discover() if custom is None else custom
+    full = [n for n, m in custom.items() if getattr(m, "FULL_TEXT", True) and n not in SOURCE_ORDER]
+    snippet = [n for n, m in custom.items() if not getattr(m, "FULL_TEXT", True) and n not in SOURCE_ORDER]
+    return BUILTIN_FULL_TEXT + full + ["linkedin"] + snippet + ["englishjobs"], custom
+
+
+def chosen_sources(profile, requested=None, log=print, custom=None):
+    """The sources to run today, in run order. Unknown names are reported, not silently dropped."""
+    order, custom = available_sources(custom)
+    names = requested or profile.search.get("sources", SOURCE_ORDER)
+    for n in names:
+        if n not in order:
+            log(f"unknown source {n!r} (built-in: {', '.join(SOURCE_ORDER)}; "
+                f"custom: {', '.join(custom) or 'none in sources_custom/'})")
+    chosen = [s for s in order if s in names]
+    if "linkedin" in chosen and not profile.search.get("linkedin", {}).get("enabled"):
+        chosen.remove("linkedin")
+    return chosen, custom
 
 
 # ---------------------------------------------------------------- lock
@@ -170,7 +195,14 @@ class Gate:
 
 
 # ---------------------------------------------------------------- run
-def collect_source(name, profile, since, gate, log):
+def collect_source(name, profile, since, gate, log, custom=None):
+    if custom and name in custom:
+        postings = custom[name].collect(plugins.context(profile, since, gate, log, name)) or []
+        for p in postings:
+            p.setdefault("source", name)
+            p.setdefault("text_is_snippet", not getattr(custom[name], "FULL_TEXT", True))
+        log(f"{name}: {len(postings)} wanted postings")
+        return postings
     s = profile.search
     keywords = s.get("keywords", [])
     if name == "arbeitnow":
@@ -243,10 +275,7 @@ def save_seen(data):
 
 def run(args):
     profile = config.get()
-    wanted_sources = [s for s in SOURCE_ORDER if s in (args.sources.split(",") if args.sources
-                                                         else profile.search.get("sources", SOURCE_ORDER))]
-    if "linkedin" in wanted_sources and not profile.search.get("linkedin", {}).get("enabled"):
-        wanted_sources.remove("linkedin")
+    wanted_sources, custom = chosen_sources(profile, args.sources.split(",") if args.sources else None)
     if args.ensure_today and ensure_today_done(wanted_sources):
         return
 
@@ -279,7 +308,7 @@ def run(args):
             log(f"{name}: starting")
             t0 = time.time()
             try:
-                postings = collect_source(name, profile, since, gate, log)
+                postings = collect_source(name, profile, since, gate, log, custom)
                 added = store(seen, postings, today, args.dry_run, urls)
                 report["sources"][name] = {"collected": len(postings), "added": added, "seconds": round(time.time() - t0)}
             except Exception as e:  # one broken source must not stop the others

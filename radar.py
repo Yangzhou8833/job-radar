@@ -16,6 +16,7 @@ Setup and maintenance
   profile-check    show what your profile resolves to, and test job titles against it
   prescreen        re-run the pre-screen on unscreened entries
   ats              company career boards: harvest | probe | list | add
+  sources          list built-in and custom sources (sources_custom/) and which ones run
 """
 import argparse
 import os
@@ -38,8 +39,9 @@ def profile_check(args):
     print(f"skip: {p.skip_years}+ years required" + (", senior titles" if p.skip_senior else ""))
     print(f"directions ({len(p.directions)}): {', '.join(p.directions)}")
     s = p.search
-    srcs = s.get("sources", collect.SOURCE_ORDER)
-    print(f"sources: {', '.join(srcs)}" + (" + linkedin" if s.get("linkedin", {}).get("enabled") else ""))
+    chosen, _ = collect.chosen_sources(p, log=lambda m: print("WARNING:", m))
+    print(f"sources: {', '.join(chosen)}" + (f" | company boards listed: {len(s.get('company_boards', []))}"
+                                             if s.get("company_boards") else ""))
     print(f"search keywords: {len(s.get('keywords', []))}, digest: {'on' if p.digest.get('enabled') else 'off'}")
     if not p.summary:
         print("WARNING: candidate.summary is empty; the ranking agents will know almost nothing about you")
@@ -48,6 +50,17 @@ def profile_check(args):
         print(f"  {'SKIP' if reason else 'KEEP'}  {title}" + (f"  ({reason})" if reason else f"  -> {', '.join(p.families_of(title))}"))
     if args.prompt:
         print("\n----- ranking prompt -----\n" + rank.agent_prompt(p))
+
+
+def list_sources(args):
+    p = config.get()
+    order, custom = collect.available_sources()
+    chosen, _ = collect.chosen_sources(p, log=lambda m: print("WARNING:", m), custom=custom)
+    for name in order:
+        kind = "custom" if name in custom else "built-in"
+        text = "full text" if (name not in custom and name in collect.BUILTIN_FULL_TEXT) or             (name in custom and getattr(custom[name], "FULL_TEXT", True)) else "snippet / fetched later"
+        print(f"  {'ON ' if name in chosen else 'off'}  {name:<14} {kind:<8} {text}")
+    print("Turn sources on or off in [search] sources; add your own in sources_custom/ (or /add-source).")
 
 
 def main():
@@ -100,6 +113,7 @@ def main():
     ps.add_argument("--limit", type=int, default=0)
     ps.set_defaults(func=prescreen.cli)
 
+    sub.add_parser("sources").set_defaults(func=list_sources)
     t = sub.add_parser("ats")
     tsub = t.add_subparsers(dest="ats_cmd", required=True)
     tsub.add_parser("harvest")

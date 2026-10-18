@@ -5,6 +5,7 @@ A daily job search pipeline: Python collects and pre-screens postings for free, 
 ## Commands
 - `/setup` - build `profile/profile.toml` from the user's CV. Run it first; nothing else works without a profile.
 - `/daily-rank` - stage B of the daily run (ranking, verification, dashboard, digest).
+- `/add-source <board>` - add a job board or API as a source in `sources_custom/` (checks robots.txt and terms first).
 - `python radar.py --help` - every deterministic step (collect, prescreen, rank-prepare/apply, dashboard, digest, sync, profile-check).
 
 ## Rules

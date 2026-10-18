@@ -204,10 +204,33 @@ def fetch_board(ats, board, company, wanted=None):
 
 
 # ---------------------------------------------------------------- daily collector entry point
+def seed_from_profile(reg, profile, log=print):
+    """Add the boards listed in [search] company_boards ("greenhouse:stripe", "lever:spotify"),
+    so you can follow any company in any country from day one. Returns how many were new."""
+    added = 0
+    for item in profile.search.get("company_boards", []):
+        ats, _, board = str(item).partition(":")
+        ats, board = ats.strip().lower(), board.strip()
+        if ats not in ATS_NAMES or not board:
+            log(f"  ats: ignored company_boards entry {item!r} (use <system>:<board>, system one of {', '.join(ATS_NAMES)})")
+            continue
+        key = board_key(ats, board)
+        if key not in reg["boards"]:
+            reg["boards"][key] = {"ats": ats, "board": board, "company": board, "source": "profile",
+                                  "first_seen": today(), "enabled": True}
+            added += 1
+        elif not reg["boards"][key].get("enabled", True) and reg["boards"][key].get("source") == "profile":
+            reg["boards"][key].update(enabled=True, fails=0)
+    return added
+
+
 def collect(wanted, log=print, delay=1.5):
     """Pull every enabled board. Every open role a board lists is offered to `wanted`
     (no date window: an open role is worth seeing the first time we find its board)."""
     reg = load_registry()
+    seeded = seed_from_profile(reg, config.get(), log=log)
+    if seeded:
+        log(f"  ats: {seeded} boards added from your profile's company_boards")
     out, ok, failed = [], 0, 0
     # career feeds are global: only a positively recognised in-scope location counts
     # (otherwise São Paulo, Cape Town or "Remote - US" would be read as your default country)

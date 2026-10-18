@@ -101,9 +101,15 @@ keywords = ["spanish", "spanisch", "español", "latam", "latin america"]
 companies = []
 
 [search]
-# Sources, in the order they run: bundesagentur (Germany's federal job board, full text), arbeitnow,
-# ats (company career feeds), workable, linkedin (needs bun, see README), englishjobs.
+# Built-in sources: bundesagentur (Germany's federal job board, full text), arbeitnow (Germany and
+# Europe), ats (company career feeds, worldwide), workable (worldwide), linkedin (needs bun, see
+# README), englishjobs (Germany, Poland). Your own sources from sources_custom/ go here too, by name
+# (e.g. "remotive", the bundled example). `python radar.py sources` lists everything available.
 sources = ["bundesagentur", "arbeitnow", "ats", "workable", "englishjobs"]
+# Company career boards to follow from day one, as <system>:<board> (the part of the board's URL after
+# the domain, e.g. boards.greenhouse.io/stripe -> greenhouse:stripe). Systems: greenhouse, lever,
+# lever_eu, ashby, personio, recruitee, smartrecruiters. More boards are discovered automatically.
+company_boards = []
 # Keep postings published in the last N days.
 days = 2
 # Keyword searches for Bundesagentur and englishjobs. One or two broad terms per direction is enough:
@@ -119,6 +125,10 @@ workable_keywords = ["marketing", "brand", "growth", "e-commerce", "business ana
                      "sales operations", "customer success", "account manager", "product", "operations",
                      "procurement", "strategy", "junior", "graduate", "entry level"]
 workable_cities = ["Berlin", "Munich", "Hamburg", "Frankfurt", "Cologne", "Amsterdam", "Rotterdam", "Vienna"]
+
+# Settings for individual sources, one table per source name, e.g. for the bundled example:
+# [search.sources_config.remotive]
+# categories = ["marketing", "sales-business"]
 
 [search.linkedin]
 # LinkedIn is off by default: it needs bun (https://bun.sh), and automated access is against
