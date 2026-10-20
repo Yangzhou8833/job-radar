@@ -430,7 +430,8 @@ function renderAll(){
   $("n-apps").textContent = `(${DATA.funnel.open})`;
   $("n-rem").innerHTML = DATA.reminders.length ? `<span class="dot">${DATA.reminders.length}</span>` : "";
   document.querySelectorAll(".nchg").forEach(e => e.textContent = changes().length);
-  $("sub").innerHTML = (DATA.demo ? '<span class="pill s-interview">Demo · fictional companies</span> ' : "") + `Updated ${esc(DATA.updated)} · ` + (LIVE ? '<span class="live">● live: changes are saved directly</span>' :
+  $("sub").innerHTML = (DATA.demo ? '<span class="pill s-interview">Demo · fictional companies</span> ' : "") + `Updated ${esc(DATA.updated)} · ` + (LIVE ? '<span class="live">● live: changes are saved directly</span>' : DATA.demo ?
+    "interactive demo: drag cards and change statuses, changes stay in your browser" :
     "opened as a file: marks stay in this browser until you copy and sync them");
 }
 document.querySelectorAll("nav button").forEach(b => b.addEventListener("click", () => {
