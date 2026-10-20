@@ -6,6 +6,7 @@ profile/*
 # Runtime data and generated reports
 data/
 reports/
+/demo/
 
 # Python / tooling
 __pycache__/

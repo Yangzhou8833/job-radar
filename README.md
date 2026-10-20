@@ -11,6 +11,26 @@ Built with [Claude Code](https://claude.com/claude-code). Python does the cheap,
         (title rules)       (full-text rules)     (Claude Haiku agents)
 ```
 
+## See it in 10 seconds
+
+```bash
+python radar.py demo
+```
+
+Opens the full dashboard on fictional demo data: no setup, no network, no Claude account, and it never touches your own data. Or [open the demo page](https://yangzhou8833.github.io/job-radar/demo/) in your browser.
+
+**Applications board**: every application by stage, with reminders for follow-ups, interviews and deadlines. Drag a card to move it; click it for details and its timeline.
+
+![Applications board with reminders](docs/screenshots/apps.png)
+
+**Insights**: the last 7 days against the 7 before, conversion at every stage, where interviews come from, and the last 8 weeks.
+
+![Insights with funnel, conversion rates and weekly chart](docs/screenshots/insights.png)
+
+**Jobs**: every ranked posting with the reason for its fit, filterable by fit, country, source and status.
+
+![Ranked jobs list](docs/screenshots/jobs.png)
+
 ---
 
 ## Why I built it
@@ -31,7 +51,7 @@ So I treated it like a commercial analytics problem: pull every source into one 
 - **Learns from you**: mark jobs as applied or delete them with a reason on the dashboard; those choices go back into the ranking prompt as calibration examples.
 - **Tracks your applications end to end**: a board from drafted to applied, interview, offer and hired (or rejected, no response, withdrawn). Drag a card to move it, open it to record the stage ("Round 2", "Case study"), the next interview date, contact, salary and CV version; every change lands on the application's timeline.
 - **Reminds you**: follow up after 14 days of silence, offers to close applications that went quiet after 30 days, and flags interviews and deadlines in the next 3 days (all configurable under `[tracking]`).
-- **Shows your funnel**: applied -> interview -> offer -> hired, overall and split by source, fit, country and direction, plus the median days to a first reply. Roles that led to interviews become the strongest calibration signal for the next day's ranking.
+- **Shows your funnel**: applied -> interview -> offer -> hired with the conversion at every stage and the response rate, overall and split by source, fit, country and direction; the last 7 days against the 7 before; the last 8 weeks; and which direction and source bring the most interviews. Roles that led to interviews become the strongest calibration signal for the next day's ranking.
 - **Reports**: a dashboard that saves every click directly when you run `python radar.py serve` (or works as a plain HTML file with copy-and-sync), and an optional daily email that is sent even on empty days, so a missing email means a failed run.
 
 ## How it works
@@ -127,6 +147,7 @@ For Gmail, the app password needs 2-Step Verification. Other providers: set `dig
 python radar.py collect          # stage A
 python radar.py rank-prepare     # batches for the ranking agents (used by /daily-rank)
 python radar.py rank-apply DIR   # write verdicts back
+python radar.py demo             # dashboard on fictional demo data
 python radar.py serve            # dashboard with direct saving (Ctrl+C to stop)
 python radar.py dashboard        # rebuild the static dashboard file
 python radar.py digest --dry-run # preview today's email

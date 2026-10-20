@@ -7,6 +7,7 @@ Daily pipeline
   rank-apply       write the agents' verdicts back and rebuild the dashboard
   verify-prepare   batches of snippet-only high/medium roles for the job-verify agents
   verify-apply     store the verified postings and requeue them for ranking
+  demo             open the dashboard on fictional demo data (for a first look or a live demo)
   serve            open the dashboard with direct saving (local only)
   dashboard        rebuild reports/dashboard.html (static file)
   digest           write (and send, if enabled) today's email
@@ -25,7 +26,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from jobradar import ats_feeds, collect, config, cv_extract, dashboard, digest, feedback, prescreen, rank, server  # noqa: E402
+from jobradar import ats_feeds, collect, config, cv_extract, dashboard, demo, digest, feedback, prescreen, rank, server  # noqa: E402
 from jobradar.rules import senior_skip, title_rejection  # noqa: E402
 
 
@@ -93,6 +94,11 @@ def main():
     va.set_defaults(func=rank.cmd_verify_apply)
 
     sub.add_parser("dashboard").set_defaults(func=lambda args: dashboard.build())
+    dm = sub.add_parser("demo", help="dashboard on fictional demo data")
+    dm.add_argument("--port", type=int, default=8770)
+    dm.add_argument("--no-browser", action="store_true")
+    dm.add_argument("--static", metavar="PATH", help="write a self-contained demo page instead of starting a server")
+    dm.set_defaults(func=demo.cli)
     sv = sub.add_parser("serve", help="dashboard with direct saving, on 127.0.0.1 only")
     sv.add_argument("--port", type=int, default=8765)
     sv.add_argument("--no-browser", action="store_true")

@@ -226,8 +226,10 @@ def reminders(rows, events, profile=None, on=None):
     return sorted(out, key=lambda x: (order[x["kind"]], x["days"]))
 
 
-def funnel(rows, events, seen=None, profile=None):
-    """Applied -> interview -> offer -> hired, overall and split by source, fit, country, direction."""
+def funnel(rows, events, seen=None, profile=None, on=None):
+    """Applied -> interview -> offer -> hired, overall and split by source, fit, country and direction;
+    stage-to-stage and response rates; the last 7 days against the 7 before; the last 8 weeks;
+    and highlights (direction with the most interviews, source with the best interview rate)."""
     from .dashboard import SOURCE_LABELS
     seen = seen or {}
     sent = [r for r in rows if reached(r, events) >= 1]
@@ -246,10 +248,10 @@ def funnel(rows, events, seen=None, profile=None):
         v = seen.get(r.get("job_key")) or {}
         title = v.get("title") or r.get("role") or ""
         dirs = (profile.families_of(title) if profile else []) or ["other"]
-        return {"source": SOURCE_LABELS.get(v.get("portal"), v.get("portal") or "added by hand"),
+        return {"source": SOURCE_LABELS.get(v.get("portal"), v.get("portal") or HAND),
                 "fit": v.get("rank_fit") or "unranked",
                 "country": countries.workable_name(v["country"]) if v.get("country") in countries.COUNTRIES else "unknown",
-                "direction": dirs[0].replace("_", " ")}
+                "direction": pretty(dirs[0])}
 
     by = {}
     for dim in ("source", "fit", "country", "direction"):
@@ -258,20 +260,87 @@ def funnel(rows, events, seen=None, profile=None):
             groups.setdefault(dims(r)[dim], []).append(r)
         by[dim] = sorted(({"label": k, **counts(g)} for k, g in groups.items()), key=lambda x: -x["applied"])
 
-    waits = []
+    on = on or today()
+    replies, to_interview, interview_days, offer_days = [], [], [], []
     for r in sent:
-        applied_on = r.get("date")
-        later = sorted(e["at"] for e in events if e.get("id") == r["id"] and e.get("to") not in ("applied", "drafted", "")
-                       and e.get("at"))
-        if applied_on and later:
-            try:
-                waits.append(_days(applied_on, later[0]))
-            except ValueError:
-                pass
+        reply = first_event(r, events, REPLY)
+        interview = first_event(r, events, REACHED_INTERVIEW)
+        offer = first_event(r, events, REACHED_OFFER)
+        if r.get("date") and reply:
+            replies.append(_safe_days(r["date"], reply))
+        if r.get("date") and interview:
+            to_interview.append(_safe_days(r["date"], interview))
+        interview_days.append(interview)
+        offer_days.append(offer)
+    overall = counts(sent)
+    replied = sum(1 for r in sent if first_event(r, events, REPLY) or r.get("status") in REPLY)
+
+    def in_window(day, start, end):
+        return bool(day) and start <= day <= end
+
+    d = datetime.date.fromisoformat(on)
+    last7 = ((d - datetime.timedelta(days=6)).isoformat(), on)
+    prev7 = ((d - datetime.timedelta(days=13)).isoformat(), (d - datetime.timedelta(days=7)).isoformat())
+    recent = {"applied_7d": sum(in_window(r.get("date"), *last7) for r in sent),
+              "applied_prev_7d": sum(in_window(r.get("date"), *prev7) for r in sent),
+              "interviews_7d": sum(in_window(x, *last7) for x in interview_days),
+              "interviews_prev_7d": sum(in_window(x, *prev7) for x in interview_days)}
+
+    monday = d - datetime.timedelta(days=d.weekday())
+    weekly = []
+    for i in range(WEEKS - 1, -1, -1):
+        start = monday - datetime.timedelta(weeks=i)
+        span = (start.isoformat(), min(on, (start + datetime.timedelta(days=6)).isoformat()))
+        weekly.append({"week": span[0], "applied": sum(in_window(r.get("date"), *span) for r in sent),
+                       "interviews": sum(in_window(x, *span) for x in interview_days),
+                       "offers": sum(in_window(x, *span) for x in offer_days)})
+
+    pct = lambda a, b: round(100 * a / b) if b else None
+    rates = {"applied_to_interview": pct(overall["interview"], overall["applied"]),
+             "interview_to_offer": pct(overall["offer"], overall["interview"]),
+             "offer_to_hired": pct(overall["hired"], overall["offer"]),
+             "response": pct(replied, overall["applied"])}
+    dirs = [x for x in by["direction"] if x["interview"]]
+    top_dir = max(dirs, key=lambda x: (x["interview"], x["interview_rate"] or 0), default=None)
+    srcs = [x for x in by["source"] if x["applied"] >= MIN_FOR_RATE and x["label"] != HAND]
+    best_src = max(srcs, key=lambda x: (x["interview_rate"] or 0, x["applied"]), default=None)
+    clean = lambda xs: [x for x in xs if x is not None]
+    highlights = {"top_direction": top_dir, "best_source": best_src if best_src and best_src["interview"] else None,
+                  "median_days_to_interview": statistics.median(clean(to_interview)) if clean(to_interview) else None}
     status_counts = {s: sum(r.get("status") == s for r in rows) for s in STATUSES}
-    return {"overall": counts(sent), "by": by, "status_counts": status_counts,
-            "open": sum(r.get("status") not in FINAL for r in rows),
-            "median_days_to_reply": statistics.median(waits) if waits else None}
+    return {"overall": overall, "by": by, "status_counts": status_counts, "rates": rates, "recent": recent,
+            "weekly": weekly, "highlights": highlights, "open": sum(r.get("status") not in FINAL for r in rows),
+            "median_days_to_reply": statistics.median(clean(replies)) if clean(replies) else None}
+
+
+WEEKS = 8
+HAND = "added by hand"
+MIN_FOR_RATE = 3  # a source needs this many applications before its interview rate counts as "best"
+REPLY = ("interview", "offer", "hired", "rejected", "offer_declined")  # no_response / withdrawn are not replies
+REACHED_INTERVIEW = ("interview", "offer", "hired", "offer_declined")
+REACHED_OFFER = ("offer", "hired", "offer_declined")
+
+
+ACRONYMS = {"crm", "bi", "gtm", "seo", "sea", "pr", "b2b", "b2c", "hr", "it", "ai", "ux", "apac", "emea", "dach", "fmcg"}
+
+
+def pretty(name):
+    """A direction group's profile key as a label: "crm_lifecycle" -> "CRM lifecycle"."""
+    words = [w.upper() if w in ACRONYMS else w for w in name.replace("_", " ").split()]
+    return (words[0][:1].upper() + words[0][1:] + (" " + " ".join(words[1:]) if words[1:] else "")) if words else name
+
+
+def first_event(row, events, statuses):
+    """Date of the first recorded move into one of `statuses`, or None."""
+    days = sorted(e["at"] for e in events if e.get("id") == row["id"] and e.get("to") in statuses and e.get("at"))
+    return days[0] if days else None
+
+
+def _safe_days(a, b):
+    try:
+        return _days(a, b)
+    except ValueError:
+        return None
 
 
 def timeline(events, ident):

@@ -68,7 +68,7 @@ def payload(seen=None, profile=None):
                          "url": r.get("source") or v.get("url") or "", "fit": v.get("rank_fit") or "",
                          "lastActivity": applications.last_activity(r, events),
                          "timeline": applications.timeline(events, r["id"])})
-    return {"name": profile.name, "updated": datetime.date.today().isoformat(),
+    return {"name": profile.name, "updated": datetime.date.today().isoformat(), "demo": os.environ.get("JOB_RADAR_DEMO") == "1",
             "jobs": rows_from(seen, app_by_job), "apps": app_rows,
             "reminders": applications.reminders(apps, events, profile),
             "funnel": applications.funnel(apps, events, seen, profile),
@@ -102,9 +102,9 @@ TEMPLATE = r"""<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>__TITLE__</title>
 <style>
-:root{--bg:#f7f7f5;--panel:#fff;--sunk:#f0efeb;--text:#1d1d1b;--muted:#6b6b66;--line:#e4e3de;--accent:#2457c5;--accent-bg:#e6edfb;
+:root{--s1:#2a78d6;--s2:#eb6834;--bg:#f7f7f5;--panel:#fff;--sunk:#f0efeb;--text:#1d1d1b;--muted:#6b6b66;--line:#e4e3de;--accent:#2457c5;--accent-bg:#e6edfb;
 --high:#1f7a4d;--high-bg:#e3f3ea;--med:#9a6400;--med-bg:#fbf0d9;--low:#5d5d58;--low-bg:#ececea;--ex:#a33a3a;--ex-bg:#f8e4e4}
-@media (prefers-color-scheme:dark){:root{--bg:#161615;--panel:#1f1f1e;--sunk:#191918;--text:#ecebe6;--muted:#a3a29b;--line:#34332f;
+@media (prefers-color-scheme:dark){:root{--s1:#3987e5;--s2:#d95926;--bg:#161615;--panel:#1f1f1e;--sunk:#191918;--text:#ecebe6;--muted:#a3a29b;--line:#34332f;
 --accent:#7ea4ff;--accent-bg:#1f2b45;--high:#6fd3a0;--high-bg:#183a29;--med:#f0c060;--med-bg:#3b2f14;--low:#c3c2bb;--low-bg:#2c2c2a;--ex:#f08c8c;--ex-bg:#3d1f1f}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
 header{padding:18px 16px 0;max-width:1320px;margin:auto}h1{margin:0;font-size:22px}.sub{color:var(--muted);margin-top:2px;font-size:13px}
@@ -141,7 +141,8 @@ td a{color:var(--accent);text-decoration:none;font-weight:600}td a:hover{text-de
 .bar{display:flex;align-items:center;gap:10px;margin:6px 0}.bar span.l{width:80px;color:var(--muted)}.bar div.t{flex:1;background:var(--sunk);border-radius:4px;height:22px}
 .bar div.f{height:22px;border-radius:4px;background:var(--accent);min-width:2px}.bar span.n{width:90px;text-align:right}
 .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}.grid2 h3{margin:0 0 6px;font-size:14px}
-table.mini{table-layout:fixed}table.mini th:first-child{width:38%}table.mini th,table.mini td{padding:6px 8px;overflow-wrap:anywhere}table.mini td:not(:first-child),table.mini th:not(:first-child){text-align:right}
+table.mini{table-layout:fixed}table.mini th:first-child{width:36%}table.mini th,table.mini td{padding:6px 8px;overflow-wrap:break-word}
+table.mini th:not(:first-child),table.mini td:not(:first-child){white-space:nowrap}#splits{grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}table.mini td:not(:first-child),table.mini th:not(:first-child){text-align:right}
 dialog{border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);width:min(560px,calc(100vw - 32px));padding:0}
 dialog::backdrop{background:rgba(0,0,0,.35)}.dlg{padding:16px 18px}.dlg h2{margin:0 0 2px;font-size:17px}
 .form{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;margin:12px 0}.form label{display:flex;flex-direction:column;font-size:12px;color:var(--muted);gap:3px}
@@ -149,6 +150,18 @@ dialog::backdrop{background:rgba(0,0,0,.35)}.dlg{padding:16px 18px}.dlg h2{margi
 .tl{border-left:2px solid var(--line);margin:8px 0 0 4px;padding-left:12px;max-height:160px;overflow-y:auto}.tl div{margin:4px 0;font-size:12px}
 .toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:8px 14px;border-radius:6px;display:none;z-index:9}
 .live{color:var(--high)}[hidden]{display:none!important}
+.delta{display:block;font-size:12px;color:var(--muted);margin-top:1px}.delta.up{color:var(--high)}.delta.down{color:var(--ex)}
+.hl{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px}.hl span{font-size:12px;color:var(--muted)}
+.hl b{display:block;font-size:17px;margin:2px 0}.hl div{font-size:13px;color:var(--muted)}
+.summary{color:var(--muted);margin:0 0 10px}.summary b{color:var(--text)}
+.chart{position:relative;display:flex;align-items:flex-end;gap:10px;height:150px;padding:0 4px;border-bottom:1px solid var(--line)}
+.wk{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end;position:relative;outline:none}
+.bars{display:flex;align-items:flex-end;gap:2px}.bars i{display:block;width:12px;border-radius:4px 4px 0 0}
+.bars i.a{background:var(--s1)}.bars i.v{background:var(--s2)}.wk .val{font-size:11px;color:var(--muted);height:15px}
+.wk:hover,.wk:focus{background:var(--sunk);border-radius:4px}.xl{display:flex;gap:10px;padding:4px 4px 0}.xl span{flex:1;text-align:center;font-size:11px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin:0 0 8px}.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.tip{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);font-size:12px;padding:5px 8px;border-radius:5px;white-space:nowrap;pointer-events:none;display:none;z-index:2}
+.wk:hover .tip,.wk:focus .tip{display:block}details{margin-top:8px;font-size:12px;color:var(--muted)}details table td,details table th{padding:3px 8px}
 @media (max-width:640px){.form{grid-template-columns:1fr}.stat{min-width:76px;padding:6px 10px}}
 </style>
 </head>
@@ -179,6 +192,7 @@ dialog::backdrop{background:rgba(0,0,0,.35)}.dlg{padding:16px 18px}.dlg h2{margi
 </section>
 
 <section id="apps" hidden>
+<p class="summary" id="app-summary"></p>
 <div class="reminders" id="reminders" hidden></div>
 <div class="controls"><input type="search" id="aq" placeholder="Search company, role, notes">
 <button id="add-app" hidden>+ Add application</button>
@@ -189,8 +203,15 @@ dialog::backdrop{background:rgba(0,0,0,.35)}.dlg{padding:16px 18px}.dlg h2{margi
 
 <section id="insights" hidden>
 <div class="stats" id="kpis"></div>
-<div class="funnel"><h3 style="margin:0 0 6px;font-size:14px">Funnel</h3><div id="funnel"></div></div>
-<div class="grid2" id="splits"></div>
+<div class="grid2" id="highlights" style="margin-bottom:14px"></div>
+<div class="grid2">
+<div class="funnel"><h3 style="margin:0 0 6px;font-size:14px">Funnel and conversion</h3><div id="funnel"></div><div class="muted" id="rates" style="margin-top:8px"></div></div>
+<div class="funnel"><h3 style="margin:0 0 6px;font-size:14px">Last 8 weeks</h3>
+<div class="legend"><span><i style="background:var(--s1)"></i>Applied</span><span><i style="background:var(--s2)"></i>Interviews</span></div>
+<div class="chart" id="weekly" role="img" aria-label="Applications and interviews per week, last 8 weeks"></div><div class="xl" id="weekly-x"></div>
+<details><summary>Show as table</summary><table id="weekly-table"></table></details></div>
+</div>
+<div class="grid2" id="splits" style="margin-top:14px"></div>
 <p class="muted" id="ins-foot"></p>
 </section>
 </div>
@@ -343,21 +364,53 @@ async function moveApp(id, col){
 }
 
 // ------------------------------------------------------------ insights
+function delta(now, before){
+  const d = now - before;
+  if (!before && !now) return '<span class="delta">none in the 7 days before either</span>';
+  return d === 0 ? '<span class="delta">same as the 7 days before</span>'
+    : `<span class="delta ${d > 0 ? "up" : "down"}">${d > 0 ? "▲ +" : "▼ "}${d} vs the 7 days before</span>`;
+}
+const pctTxt = v => v === null || v === undefined ? "-" : v + "%";
+const weekLabel = iso => new Date(iso + "T00:00:00").toLocaleDateString("en-GB", {day:"numeric", month:"short"});
 function renderInsights(){
-  const F = DATA.funnel, o = F.overall, top = Math.max(o.applied, 1);
-  $("kpis").innerHTML = [["Open applications", F.open], ["Applied", o.applied], ["Interview rate", o.interview_rate === null ? "-" : o.interview_rate + "%"],
-    ["Offers", o.offer], ["Median days to reply", F.median_days_to_reply ?? "-"]].map(([l, v]) => `<div class="stat"><b>${esc(v)}</b><span>${l}</span></div>`).join("");
+  const F = DATA.funnel, o = F.overall, R = F.rates, N = F.recent, H = F.highlights, top = Math.max(o.applied, 1);
+  $("kpis").innerHTML = [
+    ["Applied, last 7 days", N.applied_7d, delta(N.applied_7d, N.applied_prev_7d)],
+    ["Interviews, last 7 days", N.interviews_7d, delta(N.interviews_7d, N.interviews_prev_7d)],
+    ["Interview rate", pctTxt(R.applied_to_interview), `<span class="delta">${o.interview} of ${o.applied} applications</span>`],
+    ["Response rate", pctTxt(R.response), '<span class="delta">got any reply</span>'],
+    ["Offers", o.offer, `<span class="delta">${F.open} applications open</span>`]]
+    .map(([l, v, d]) => `<div class="stat"><b>${esc(v)}</b><span>${l}</span>${d}</div>`).join("");
+  const td = H.top_direction, bs = H.best_source;
+  $("highlights").innerHTML = [
+    ["Most interviews come from", td ? td.label : "-", td ? `${td.interview} interview${td.interview === 1 ? "" : "s"} from ${td.applied} applications (${pctTxt(td.interview_rate)})` : "no interviews recorded yet"],
+    ["Best source for interviews", bs ? bs.label : "-", bs ? `interview rate ${pctTxt(bs.interview_rate)} over ${bs.applied} applications` : "needs 3+ applications from a source with an interview"],
+    ["Time to hear back", F.median_days_to_reply === null ? "-" : `${F.median_days_to_reply} days`, H.median_days_to_interview === null ? "median to a first reply" : `median to a first reply · ${H.median_days_to_interview} days to an interview`]]
+    .map(([l, v, d]) => `<div class="hl"><span>${l}</span><b>${esc(v)}</b><div>${esc(d)}</div></div>`).join("");
   $("funnel").innerHTML = [["applied", "Applied"], ["interview", "Interview"], ["offer", "Offer"], ["hired", "Hired"]].map(([k, l], i, all) => {
     const prev = i ? o[all[i - 1][0]] : null, rate = i && prev ? ` (${Math.round(100 * o[k] / prev)}%)` : "";
     return `<div class="bar"><span class="l">${l}</span><div class="t"><div class="f" style="width:${100 * o[k] / top}%"></div></div><span class="n">${o[k]}${rate}</span></div>`;
   }).join("");
+  $("rates").textContent = `Applied → interview ${pctTxt(R.applied_to_interview)} · interview → offer ${pctTxt(R.interview_to_offer)} · offer → hired ${pctTxt(R.offer_to_hired)}`;
+  const W = F.weekly, max = Math.max(1, ...W.map(w => w.applied), ...W.map(w => w.interviews));
+  const peak = W.reduce((m, w, i) => w.applied > W[m].applied ? i : m, 0);
+  $("weekly").innerHTML = W.map((w, i) => {
+    const h = n => n ? Math.max(4, Math.round(118 * n / max)) : 0;
+    const label = i === W.length - 1 || i === peak ? `${w.applied}` : "";
+    return `<div class="wk" tabindex="0"><span class="val">${label}</span><div class="bars"><i class="a" style="height:${h(w.applied)}px"></i><i class="v" style="height:${h(w.interviews)}px"></i></div>
+<div class="tip">Week of ${weekLabel(w.week)}: ${w.applied} applied · ${w.interviews} interview${w.interviews === 1 ? "" : "s"}${w.offers ? ` · ${w.offers} offer${w.offers === 1 ? "" : "s"}` : ""}</div></div>`;
+  }).join("");
+  $("weekly-x").innerHTML = W.map(w => `<span>${weekLabel(w.week)}</span>`).join("");
+  $("weekly-table").innerHTML = `<tr><th>Week of</th><th>Applied</th><th>Interviews</th><th>Offers</th></tr>` +
+    W.map(w => `<tr><td>${weekLabel(w.week)}</td><td>${w.applied}</td><td>${w.interviews}</td><td>${w.offers}</td></tr>`).join("");
   const names = {source:"By source", fit:"By fit", country:"By country", direction:"By direction"};
   $("splits").innerHTML = Object.entries(F.by).map(([dim, rows]) => `<div class="table"><div style="padding:10px 10px 0"><h3>${names[dim]}</h3></div>
 <table class="mini"><thead><tr><th></th><th>Applied</th><th>Interview</th><th>Offer</th><th title="Interview rate">Rate</th></tr></thead><tbody>${rows.map(r =>
-    `<tr><td>${esc(r.label)}</td><td>${r.applied}</td><td>${r.interview}</td><td>${r.offer}</td><td>${r.interview_rate === null ? "-" : r.interview_rate + "%"}</td></tr>`).join("")
+    `<tr><td>${esc(r.label)}</td><td>${r.applied}</td><td>${r.interview}</td><td>${r.offer}</td><td>${pctTxt(r.interview_rate)}</td></tr>`).join("")
     || '<tr><td colspan="5" class="muted">no applications yet</td></tr>'}</tbody></table></div>`).join("");
-  $("ins-foot").textContent = "Counts how far each application got, so a rejection after an interview still counts as an interview." +
+  $("ins-foot").textContent = "Counts how far each application got, so a rejection after an interview still counts as an interview. A reply is an interview, offer or rejection." +
     (LIVE ? "" : " Opened as a file: reflects the last saved data, not unsynced marks.");
+  $("app-summary").innerHTML = `Last 7 days: <b>${N.applied_7d}</b> applied · <b>${N.interviews_7d}</b> interview${N.interviews_7d === 1 ? "" : "s"} · overall interview rate <b>${pctTxt(R.applied_to_interview)}</b>`;
 }
 
 // ------------------------------------------------------------ shared
@@ -377,7 +430,7 @@ function renderAll(){
   $("n-apps").textContent = `(${DATA.funnel.open})`;
   $("n-rem").innerHTML = DATA.reminders.length ? `<span class="dot">${DATA.reminders.length}</span>` : "";
   document.querySelectorAll(".nchg").forEach(e => e.textContent = changes().length);
-  $("sub").innerHTML = `Updated ${esc(DATA.updated)} · ` + (LIVE ? '<span class="live">● live: changes are saved directly</span>' :
+  $("sub").innerHTML = (DATA.demo ? '<span class="pill s-interview">Demo · fictional companies</span> ' : "") + `Updated ${esc(DATA.updated)} · ` + (LIVE ? '<span class="live">● live: changes are saved directly</span>' :
     "opened as a file: marks stay in this browser until you copy and sync them");
 }
 document.querySelectorAll("nav button").forEach(b => b.addEventListener("click", () => {
@@ -433,7 +486,8 @@ document.querySelectorAll(".syncbtn").forEach(b => { b.hidden = !!LIVE; b.addEve
   catch (e) { window.prompt("Copy these lines:", text); }
 }); });
 function toast(msg){ const t = $("toast"); t.textContent = msg; t.style.display = "block"; clearTimeout(t._h); t._h = setTimeout(() => t.style.display = "none", 2600); }
-try { const tab = localStorage.getItem("job-radar-tab"); if (tab) document.querySelector(`nav button[data-tab="${tab}"]`)?.click(); } catch (e) {}
+{ let tab = location.hash.replace(/^#\/?/, ""); if (!["jobs", "apps", "insights"].includes(tab)) { try { tab = localStorage.getItem("job-radar-tab"); } catch (e) {} }
+  if (tab) document.querySelector(`nav button[data-tab="${tab}"]`)?.click(); }
 renderAll();
 </script>
 </body>

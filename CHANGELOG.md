@@ -4,6 +4,22 @@ All notable changes to Job Radar. The format follows [Keep a Changelog](https://
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-20
+
+### Added
+- **`python radar.py demo`**: the full dashboard on fictional demo data (about 45 jobs and 26 applications, dated relative to today), with no setup, network or Claude account, rebuilt on every start so it never touches your data. `--static PATH` writes a self-contained demo page; one is published at `docs/demo/`.
+- **Insights**: applied and interviews in the last 7 days against the 7 before; conversion at every stage (applied -> interview -> offer -> hired) and the response rate; highlight cards for the direction with the most interviews, the source with the best interview rate and the time to hear back; a chart of the last 8 weeks with a table view.
+- The Applications tab opens with a one-line summary of the last 7 days.
+- The dashboard opens on a tab from the URL (`#/apps`, `#/insights`).
+- Screenshots in the README.
+
+### Changed
+- Direction names read as labels ("CRM lifecycle" instead of "crm lifecycle").
+- The median time to a first reply no longer counts "no response" or "withdrawn" as a reply.
+
+### Fixed
+- `radar.py serve` refuses a port that is already taken. On Windows, Python's default socket option let a second server share the port, so an older instance could keep answering.
+
 ## [0.3.0] - 2026-10-18
 
 ### Added
@@ -44,7 +60,8 @@ First public release.
 - Optional daily email digest over SMTP, credentials from environment variables only.
 - Schedulers for Windows (Task Scheduler) and macOS / Linux (cron), and an offline test suite.
 
-[Unreleased]: https://github.com/Yangzhou8833/job-radar/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/Yangzhou8833/job-radar/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/Yangzhou8833/job-radar/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/Yangzhou8833/job-radar/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Yangzhou8833/job-radar/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Yangzhou8833/job-radar/releases/tag/v0.1.0
